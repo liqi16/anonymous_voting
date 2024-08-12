@@ -27,9 +27,11 @@ contract ZKTree is MerkleTreeWithHistory {
 
     constructor(
         uint32 _levels,
-        IHasher _hasher,
+        // IHasher _hasher,
+        address _addr,
         IVerifier _verifier
-    ) MerkleTreeWithHistory(_levels, _hasher) {
+    // ) MerkleTreeWithHistory(_levels, _hasher) {
+    ) MerkleTreeWithHistory(_levels, _addr) {
         verifier = _verifier;
     }
 

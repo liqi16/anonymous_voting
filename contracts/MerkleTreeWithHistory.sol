@@ -30,12 +30,29 @@ contract MerkleTreeWithHistory {
     uint32 public constant ROOT_HISTORY_SIZE = 30;
     uint32 public currentRootIndex = 0;
     uint32 public nextIndex = 0;
+    address public hasherAddr;
 
-    constructor(uint32 _levels, IHasher _hasher) {
+    // constructor(uint32 _levels, IHasher _hasher) {
+    //     require(_levels > 0, "_levels should be greater than zero");
+    //     require(_levels < 32, "_levels should be less than 32");
+    //     levels = _levels;
+    //     hasher = _hasher;
+
+    //     for (uint32 i = 0; i < _levels; i++) {
+    //         filledSubtrees[i] = zeros(i);
+    //     }
+
+    //     roots[0] = zeros(_levels - 1);
+    // }
+
+    constructor(uint32 _levels, address _addr) {
         require(_levels > 0, "_levels should be greater than zero");
         require(_levels < 32, "_levels should be less than 32");
         levels = _levels;
-        hasher = _hasher;
+        hasherAddr = _addr;
+        emit DebugAddr("MerkleTreeWithHistory", hasherAddr);
+        hasher = IHasher(hasherAddr);
+        
 
         for (uint32 i = 0; i < _levels; i++) {
             filledSubtrees[i] = zeros(i);
@@ -44,7 +61,20 @@ contract MerkleTreeWithHistory {
         roots[0] = zeros(_levels - 1);
     }
 
+    function setSender(address addr) public returns (address) {
+        hasherAddr=addr;
+        return hasherAddr;
+    }
+
     event Debug(string message, uint256 value1, uint256 value2);
+    event DebugAddr(string message, address value);
+
+    function testHasher(uint256 _left, uint256 _right) public returns (uint256, uint256) {
+        (uint256 hash1, uint256 hash2) = IHasher(hasherAddr).MiMCSponge(_left, _right, 0);
+        emit Debug("testHasher", hash1, hash2);
+        emit DebugAddr("testHasherAddr", hasherAddr);
+        return (hash1, hash2);
+    }
 
     /**
     @dev Hash 2 tree leaves, returns MiMC(_left, _right)
@@ -52,7 +82,7 @@ contract MerkleTreeWithHistory {
     function hashLeftRight(
         uint256 _left,
         uint256 _right
-    ) public returns (bytes32) {
+    ) public view returns (bytes32) {
         require(
             _left < FIELD_SIZE,
             "_left should be inside the field"
@@ -61,13 +91,18 @@ contract MerkleTreeWithHistory {
             _right < FIELD_SIZE,
             "_right should be inside the field"
         );
+        // emit DebugAddr("MimcSpongeAddress", hasherAddr);
         uint256 R = _left;
         uint256 C = 0;
-        emit Debug("Calling MiMCSponge with R and C", R, C);
-        (R, C) = hasher.MiMCSponge(R, C, 0);
-        emit Debug("After first MiMCSponge", R, C);
+        // emit Debug("Calling MiMCSponge with R and C", R, C);
+        // (R, C) = hasher.MiMCSponge(R, C, 0);
+        (R, C) = IHasher(hasherAddr).MiMCSponge(R, C, 0);
+        // emit Debug("After first MiMCSponge", R, C);
         R = addmod(R, _right, FIELD_SIZE);
-        (R, C) = hasher.MiMCSponge(R, C, 0);
+        // (R, C) = hasher.MiMCSponge(R, C, 0);
+        // emit Debug("Calling MiMCSponge with R and C", R, C);
+        (R, C) = IHasher(hasherAddr).MiMCSponge(R, C, 0);
+        // emit Debug("After first MiMCSponge", R, C);
         return bytes32(R);
     }
 
@@ -83,6 +118,7 @@ contract MerkleTreeWithHistory {
         bytes32 right;
 
         for (uint32 i = 0; i < levels; i++) {
+            // emit Debug("CurrentIndex", uint256(i), uint256(currentIndex));
             if (currentIndex % 2 == 0) {
                 left = currentLevelHash;
                 right = zeros(i);
@@ -91,6 +127,7 @@ contract MerkleTreeWithHistory {
                 left = filledSubtrees[i];
                 right = currentLevelHash;
             }
+            // emit Debug("Insert", uint256(left), uint256(right));
             currentLevelHash = hashLeftRight(uint256(left), uint256(right));
             currentIndex /= 2;
         }

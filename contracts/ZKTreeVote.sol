@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import "./ZKTree.sol";
-import "truffle/Console.sol";
 
 contract ZKTreeVote is ZKTree {
     address public owner;
@@ -13,10 +12,12 @@ contract ZKTreeVote is ZKTree {
 
     constructor(
         uint32 _levels,
-        IHasher _hasher,
+        // IHasher _hasher,
+        address _addr,
         IVerifier _verifier,
         uint _numOptions
-    ) ZKTree(_levels, _hasher, _verifier) {
+    // ) ZKTree(_levels, _hasher, _verifier) {
+    ) ZKTree(_levels, _addr, _verifier) {
         owner = msg.sender;
         numOptions = _numOptions;
         for (uint i = 0; i <= numOptions; i++) optionCounter[i] = 0;
@@ -24,7 +25,6 @@ contract ZKTreeVote is ZKTree {
 
     function registerValidator(address _validator) external {
         validators[_validator] = true;
-        console.log("Validator",_validator);
     }
 
     function registerCommitment(
